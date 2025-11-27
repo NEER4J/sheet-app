@@ -21,7 +21,7 @@ const geistSans = Geist({
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: Readonly<{  
   children: React.ReactNode;
 }>) {
   return (

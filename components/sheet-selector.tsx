@@ -25,12 +25,13 @@ interface SheetTab {
 }
 
 interface SheetSelectorProps {
-    onSelect: (spreadsheetId: string, range: string) => void;
+    onSelect: (spreadsheetId: string, range: string, sheetName: string) => void;
 }
 
 export function SheetSelector({ onSelect }: SheetSelectorProps) {
     const [files, setFiles] = useState<SheetFile[]>([]);
     const [selectedFileId, setSelectedFileId] = useState<string>("");
+    const [selectedFileName, setSelectedFileName] = useState<string>("");
     const [tabs, setTabs] = useState<SheetTab[]>([]);
     const [selectedTabTitle, setSelectedTabTitle] = useState<string>("");
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
@@ -41,7 +42,7 @@ export function SheetSelector({ onSelect }: SheetSelectorProps) {
         async function fetchFiles() {
             setIsLoadingFiles(true);
             try {
-                const res = await fetch("/api/sheets/list");
+                const res = await fetch(`/api/sheets/list?_t=${Date.now()}`);
                 if (res.ok) {
                     const data = await res.json();
                     setFiles(data.files || []);
@@ -65,7 +66,7 @@ export function SheetSelector({ onSelect }: SheetSelectorProps) {
             setSelectedTabTitle("");
             try {
                 const res = await fetch(
-                    `/api/sheets/meta?spreadsheetId=${selectedFileId}`,
+                    `/api/sheets/meta?spreadsheetId=${selectedFileId}&_t=${Date.now()}`,
                 );
                 if (res.ok) {
                     const data = await res.json();
@@ -85,16 +86,24 @@ export function SheetSelector({ onSelect }: SheetSelectorProps) {
     }, [selectedFileId]);
 
     const handleLoadData = () => {
-        if (selectedFileId && selectedTabTitle) {
-            onSelect(selectedFileId, selectedTabTitle);
+        if (selectedFileId && selectedTabTitle && selectedFileName) {
+            onSelect(selectedFileId, selectedTabTitle, selectedFileName);
+        }
+    };
+
+    const handleFileChange = (fileId: string) => {
+        setSelectedFileId(fileId);
+        const file = files.find(f => f.id === fileId);
+        if (file) {
+            setSelectedFileName(file.name);
         }
     };
 
     return (
-        <div className="grid gap-4 p-4 border rounded-lg bg-card text-card-foreground shadow-sm max-w-md">
+        <div className="grid gap-4 p-4 border rounded-lg bg-card -sm max-w-md">
             <div className="grid gap-2">
                 <Label htmlFor="sheet-file">Select Google Sheet</Label>
-                <Select onValueChange={setSelectedFileId} value={selectedFileId}>
+                <Select onValueChange={handleFileChange} value={selectedFileId}>
                     <SelectTrigger id="sheet-file" className="w-full">
                         <SelectValue placeholder="Select a spreadsheet" />
                     </SelectTrigger>
