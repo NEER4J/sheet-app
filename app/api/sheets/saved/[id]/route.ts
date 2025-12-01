@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { transformSheetData } from "@/lib/sheet-data-transformer";
 import { google } from "googleapis";
+import { getGoogleTokens } from "@/lib/google-tokens";
 
 export const dynamic = 'force-dynamic';
 
@@ -46,10 +47,12 @@ export async function GET(
         }
 
         // 2. Try to fetch fresh data from Google Sheets if we have a token
-        if (session.provider_token && savedSheet.spreadsheet_id && savedSheet.tab_name) {
+        const tokens = await getGoogleTokens(session.user.id);
+
+        if (tokens?.provider_token && savedSheet.spreadsheet_id && savedSheet.tab_name) {
             try {
                 const auth = new google.auth.OAuth2();
-                auth.setCredentials({ access_token: session.provider_token });
+                auth.setCredentials({ access_token: tokens.provider_token });
 
                 const sheets = google.sheets({ version: "v4", auth });
 

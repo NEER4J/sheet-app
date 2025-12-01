@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { google } from "googleapis";
 import { NextRequest, NextResponse } from "next/server";
+import { getGoogleTokens } from "@/lib/google-tokens";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,16 +24,21 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!session || !session.provider_token) {
+    if (userError || !user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get tokens from database
+    const tokens = await getGoogleTokens(user.id);
+
+    if (!tokens || !tokens.provider_token) {
+        return NextResponse.json({ error: "Google account not connected" }, { status: 401 });
+    }
+
     const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: session.provider_token });
+    auth.setCredentials({ access_token: tokens.provider_token });
 
     const sheets = google.sheets({ version: "v4", auth });
 
